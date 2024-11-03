@@ -9,6 +9,6 @@ Tag Sync runs any time you open a file, no need to activate it or summon it.
 
 It does the following:
 
-- Monitors when users are typing or editing opening tags
+- Monitors when typing or editing is in an opening tag
 - Detects when an opening tag is completed
 - Automatically finds and updates the corresponding closing tag to match

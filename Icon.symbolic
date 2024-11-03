@@ -1,34 +1,34 @@
 {
+  "shadowOpacity" : 0,
+  "shadowHeight" : 0.3,
   "symbol" : {
-    "variant" : "outlined",
+    "family" : "material-icons",
     "name" : "sync_alt",
-    "family" : "material-icons"
+    "variant" : "outlined"
+  },
+  "version" : 1,
+  "id" : "24670896-9CE6-40DD-86CB-111B3E0DEB8D",
+  "bottomColor" : {
+    "green" : 0.4101740084530409,
+    "red" : 0.914248161764706,
+    "alpha" : 1,
+    "blue" : 0.07251285118496624
   },
   "symbolColor" : {
-    "red" : 0.9999999403953552,
     "green" : 0.9999999403953552,
     "blue" : 0.9999999403953552,
-    "alpha" : 1
+    "alpha" : 1,
+    "red" : 0.9999999403953552
   },
   "iconOffset" : [
     -0.005642361111111105,
-    -0.012462797619047616
+    -0.001550099206349187
   ],
   "topColor" : {
-    "green" : 0.8784313725490196,
+    "alpha" : 1,
+    "green" : 0.9302312918937494,
     "blue" : 0,
-    "red" : 1,
-    "alpha" : 1
+    "red" : 1
   },
-  "version" : 1,
-  "iconScale" : 0.8523060368342598,
-  "shadowHeight" : 0.3,
-  "bottomColor" : {
-    "blue" : 0.047058823529411764,
-    "red" : 0.4745098039215686,
-    "green" : 0.6235294117647059,
-    "alpha" : 1
-  },
-  "id" : "24670896-9CE6-40DD-86CB-111B3E0DEB8D",
-  "shadowOpacity" : 0
+  "iconScale" : 0.8523060368342598
 }
