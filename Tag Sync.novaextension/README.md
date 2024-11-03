@@ -5,7 +5,7 @@ Improve your coding efficiency by ensuring tag pairs stay synchronized while edi
 
 ## Usage
 
-Tag Sync runs any time you open a file, no need to do activate it or summon it.
+Tag Sync runs any time you open a file, no need to activate it or summon it.
 
 It does the following:
 
