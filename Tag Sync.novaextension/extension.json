@@ -1,0 +1,19 @@
+{
+    "bugs": "https://github.com/gingerbeardman/Tag-Sync/issues",
+    "description": "Automatic synchronisation of closing tag when editing opening tag",
+    "funding": "https://ko-fi.com/gingerbeardman",
+    "identifier": "com.gingerbeardman.tagsync",
+    "homepage": "https://www.gingerbeardman.com",
+    "name": "Tag Sync",
+    "organization": "gingerbeardman",
+    "repository": "https://github.com/gingerbeardman/Tag-Sync",
+    "version": "1.0.0",
+
+    "categories": ["languages"],
+    
+    "main": "main.js",
+    
+    "activationEvents": [
+        "onLanguage:html"
+    ],
+}
