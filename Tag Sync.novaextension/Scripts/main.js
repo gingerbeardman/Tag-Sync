@@ -9,7 +9,8 @@ exports.activate = function() {
     
     // Tag parsing helper functions
     function parseOpenTag(text) {
-        const match = text.match(/^<([a-zA-Z][a-zA-Z0-9]*)/);
+        // Modified to handle empty tag names
+        const match = text.match(/^<([a-zA-Z0-9]*)/);
         return match ? match[1] : null;
     }
     
@@ -32,9 +33,11 @@ exports.activate = function() {
         // Extract tag content
         const tagContent = lineText.substring(tagStart, tagEnd);
         const tagName = parseOpenTag(tagContent);
-        if (!tagName) return null;
         
-        // Make sure cursor is in tag name
+        // Allow empty tag names but still require the < character
+        if (tagName === null) return null;
+        
+        // Make sure cursor is in tag name area (including empty space after <)
         const nameStart = tagStart + 1;
         const nameEnd = nameStart + tagName.length;
         if (charInLine < nameStart || charInLine > nameEnd) return null;
@@ -47,12 +50,20 @@ exports.activate = function() {
     
     function findClosingTag(editor, startPos, tagName) {
         const docText = editor.document.getTextInRange(new Range(startPos, editor.document.length));
-        const closeTagRegex = new RegExp(`</${tagName}>`, 'g');
+        
+        // Handle empty tag names specially
+        const closeTagRegex = tagName ? 
+            new RegExp(`</${tagName}>`, 'g') :
+            /<\/>/g;
+            
         let depth = 1;
         let lastIndex = 0;
         
         while (depth > 0) {
-            const openMatch = docText.indexOf(`<${tagName}`, lastIndex);
+            const openMatch = tagName ? 
+                docText.indexOf(`<${tagName}`, lastIndex) :
+                docText.indexOf('<', lastIndex);
+                
             const closeMatch = closeTagRegex.exec(docText);
             
             if (!closeMatch && openMatch === -1) break;
@@ -64,7 +75,10 @@ exports.activate = function() {
                 depth--;
                 if (depth === 0) {
                     const closeStart = startPos + closeMatch.index + 2; // +2 for </
-                    return new Range(closeStart, closeStart + tagName.length);
+                    return new Range(
+                        closeStart, 
+                        closeStart + (tagName ? tagName.length : 0)
+                    );
                 }
                 lastIndex = closeMatch.index + 1;
             }
@@ -139,7 +153,7 @@ exports.activate = function() {
                 to: currentTag.name
             });
             
-            // Find and update closing tag
+            // Find and update closing tag - use lastKnownTagName even if empty
             const closingRange = findClosingTag(editor, activeTagRange.end, lastKnownTagName);
             if (closingRange) {
                 updateClosingTag(editor, closingRange, currentTag.name);
