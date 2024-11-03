@@ -14,6 +14,14 @@
     "main": "main.js",
     
     "activationEvents": [
-        "onLanguage:html"
-    ],
+        "onLanguage:html",
+        "onLanguage:xml",
+        "onLanguage:jsx",
+        "onLanguage:tsx",
+        "onLanguage:vue",
+        "onLanguage:svelte",
+        "onLanguage:astro",
+        "onLanguage:php",
+        "onLanguage:markdown"
+    ]
 }

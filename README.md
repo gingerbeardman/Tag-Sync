@@ -2,7 +2,7 @@
 
 Tag Sync is an extension for the [Nova editor](https://nova.app).
 
-Automatically changes the closing tag to match when you rename/rewrite the opening tag.
+Automatic synchronisation of closing tag when editing opening tag.
 
 See the internal [README](/Tag%20Sync.novaextension/README.md) for more info.
 
