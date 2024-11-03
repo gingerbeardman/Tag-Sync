@@ -1,53 +1,152 @@
+const Logger = require('./logger.js');
+
 exports.activate = function() {
-    let lastOpenTag = null;
-    let isTypingTag = false;
+    Logger.info('Extension activated');
+
+    // Track active tag state
+    let activeTagRange = null;
+    let lastKnownTagName = null;
+    
+    // Tag parsing helper functions
+    function parseOpenTag(text) {
+        const match = text.match(/^<([a-zA-Z][a-zA-Z0-9]*)/);
+        return match ? match[1] : null;
+    }
+    
+    function findTagAtPosition(editor, position) {
+        const line = editor.getLineRangeForRange(new Range(position, position));
+        const lineText = editor.document.getTextInRange(line);
+        const charInLine = position - line.start;
+        
+        // Look for tag start
+        let tagStart = lineText.lastIndexOf('<', charInLine);
+        if (tagStart === -1) return null;
+        
+        // Make sure we're not in a closing tag
+        if (lineText[tagStart + 1] === '/') return null;
+        
+        // Find tag end
+        let tagEnd = lineText.indexOf('>', tagStart);
+        if (tagEnd === -1) tagEnd = lineText.length;
+        
+        // Extract tag content
+        const tagContent = lineText.substring(tagStart, tagEnd);
+        const tagName = parseOpenTag(tagContent);
+        if (!tagName) return null;
+        
+        // Make sure cursor is in tag name
+        const nameStart = tagStart + 1;
+        const nameEnd = nameStart + tagName.length;
+        if (charInLine < nameStart || charInLine > nameEnd) return null;
+        
+        return {
+            name: tagName,
+            range: new Range(line.start + nameStart, line.start + nameEnd)
+        };
+    }
+    
+    function findClosingTag(editor, startPos, tagName) {
+        const docText = editor.document.getTextInRange(new Range(startPos, editor.document.length));
+        const closeTagRegex = new RegExp(`</${tagName}>`, 'g');
+        let depth = 1;
+        let lastIndex = 0;
+        
+        while (depth > 0) {
+            const openMatch = docText.indexOf(`<${tagName}`, lastIndex);
+            const closeMatch = closeTagRegex.exec(docText);
+            
+            if (!closeMatch && openMatch === -1) break;
+            
+            if (openMatch !== -1 && (openMatch < closeMatch?.index || !closeMatch)) {
+                depth++;
+                lastIndex = openMatch + 1;
+            } else if (closeMatch) {
+                depth--;
+                if (depth === 0) {
+                    const closeStart = startPos + closeMatch.index + 2; // +2 for </
+                    return new Range(closeStart, closeStart + tagName.length);
+                }
+                lastIndex = closeMatch.index + 1;
+            }
+        }
+        
+        return null;
+    }
+    
+    function updateClosingTag(editor, closingRange, newName) {
+        editor.edit((edit) => {
+            Logger.info('Updating closing tag', {
+                range: closingRange,
+                newName: newName
+            });
+            edit.replace(closingRange, newName);
+        }).catch(error => {
+            Logger.error('Failed to update closing tag', error.message);
+        });
+    }
     
     nova.workspace.onDidAddTextEditor((editor) => {
-        if (!editor || !editor.document) return;
+        Logger.info('Editor registered', { path: editor.document.path });
         
-        let selectionDisposable = editor.onDidChangeSelection(() => {
-            const range = editor.selectedRange;
-            const line = editor.getTextInRange(editor.getLineRangeForRange(range));
+        editor.onDidChangeSelection((editor) => {
+            const cursorPos = editor.selectedRange.start;
+            const currentTag = findTagAtPosition(editor, cursorPos);
             
-            const openTagMatch = line.match(/<([^/][^>\s]*)/);
-            if (openTagMatch) {
-                lastOpenTag = openTagMatch[1];
-                isTypingTag = true;
-            }
-        });
-        
-        let changeDisposable = editor.onDidChange(() => {
-            if (!isTypingTag || !lastOpenTag) return;
+            Logger.debug('Selection changed', {
+                cursorPos: cursorPos,
+                currentTag: currentTag,
+                activeTagRange: activeTagRange
+            });
             
-            const range = editor.selectedRange;
-            const line = editor.getTextInRange(editor.getLineRangeForRange(range));
-            
-            if (line.includes('>')) {
-                isTypingTag = false;
-                
-                const docRange = new Range(range.start, editor.document.length);
-                const remainingText = editor.getTextInRange(docRange);
-                
-                const closingTagRegex = new RegExp(`<\\/[^>]*>`);
-                const match = remainingText.match(closingTagRegex);
-                
-                if (match) {
-                    const closingTagStart = remainingText.indexOf(match[0]);
-                    const closingTagRange = new Range(
-                        range.start + closingTagStart,
-                        range.start + closingTagStart + match[0].length
-                    );
-                    
-                    editor.edit((edit) => {
-                        edit.replace(closingTagRange, `</${lastOpenTag}>`);
-                    });
+            // Clear active tag if we've moved out
+            if (!currentTag) {
+                if (activeTagRange) {
+                    Logger.debug('Left tag');
+                    activeTagRange = null;
+                    lastKnownTagName = null;
                 }
+                return;
+            }
+            
+            // Record new active tag
+            if (!activeTagRange || !currentTag.range.isEqual(activeTagRange)) {
+                Logger.debug('Entered new tag', currentTag);
+                activeTagRange = currentTag.range;
+                lastKnownTagName = currentTag.name;
             }
         });
         
-        editor.onDidDestroy(() => {
-            selectionDisposable.dispose();
-            changeDisposable.dispose();
+        editor.onDidChange((editor) => {
+            // Only process if we're tracking a tag
+            if (!activeTagRange) return;
+            
+            const currentTag = findTagAtPosition(editor, activeTagRange.start);
+            if (!currentTag) {
+                Logger.debug('Lost tracked tag');
+                activeTagRange = null;
+                lastKnownTagName = null;
+                return;
+            }
+            
+            // Check if tag name changed
+            if (currentTag.name === lastKnownTagName) {
+                Logger.debug('Tag unchanged', currentTag.name);
+                return;
+            }
+            
+            Logger.debug('Tag changed', {
+                from: lastKnownTagName,
+                to: currentTag.name
+            });
+            
+            // Find and update closing tag
+            const closingRange = findClosingTag(editor, activeTagRange.end, lastKnownTagName);
+            if (closingRange) {
+                updateClosingTag(editor, closingRange, currentTag.name);
+            }
+            
+            lastKnownTagName = currentTag.name;
+            activeTagRange = currentTag.range;
         });
     });
-};
+}
